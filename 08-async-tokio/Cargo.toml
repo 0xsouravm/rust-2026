@@ -52,4 +52,4 @@ path = "src/todos/todo8_mutex_across_await.rs"
 
 [[bin]]
 name = "todo9_concurrency_vs_parallelism"
-path = "src/todos/todo10_concurrency_vs_parallelism.rs"
+path = "src/todos/todo9_concurrency_vs_parallelism.rs"

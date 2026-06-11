@@ -1,11 +1,11 @@
-// Todo 10 — Concurrency vs. parallelism mini-experiment
+// Todo 9 — Concurrency vs. parallelism mini-experiment
 //
 // Goal: see that `tokio::spawn` on a single-threaded runtime is
 // concurrent (interleaved) but NOT parallel, and that the wall-clock
 // time is bounded by the slowest task, not the sum of all tasks.
 //
 // Run with:
-//   cargo run --bin todo10_concurrency_vs_parallelism
+//   cargo run --bin todo9_concurrency_vs_parallelism
 
 use std::time::Instant;
 use tokio::time::{sleep, Duration};
