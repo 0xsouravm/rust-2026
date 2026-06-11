@@ -1,0 +1,55 @@
+[package]
+name = "async-tokio"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+
+[[bin]]
+name = "async-tokio"
+path = "src/main.rs"
+
+[[bin]]
+name = "result"
+path = "src/result.rs"
+
+[[bin]]
+name = "blockers"
+path = "src/blockers.rs"
+
+[[bin]]
+name = "todo1_hello_async"
+path = "src/todos/todo1_hello_async.rs"
+
+[[bin]]
+name = "todo2_pipeline"
+path = "src/todos/todo2_pipeline.rs"
+
+[[bin]]
+name = "todo3_spawn_collect"
+path = "src/todos/todo3_spawn_collect.rs"
+
+[[bin]]
+name = "todo4_spawn_blocking"
+path = "src/todos/todo4_spawn_blocking.rs"
+
+[[bin]]
+name = "todo5_async_result"
+path = "src/todos/todo5_async_result.rs"
+
+[[bin]]
+name = "todo6_runtime_config"
+path = "src/todos/todo6_runtime_config.rs"
+
+[[bin]]
+name = "todo7_cancel_task"
+path = "src/todos/todo7_cancel_task.rs"
+
+[[bin]]
+name = "todo8_mutex_across_await"
+path = "src/todos/todo8_mutex_across_await.rs"
+
+[[bin]]
+name = "todo9_concurrency_vs_parallelism"
+path = "src/todos/todo10_concurrency_vs_parallelism.rs"

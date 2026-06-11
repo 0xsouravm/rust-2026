@@ -30,6 +30,7 @@ cargo --version
 | 05 | [`05-structs-and-enums`](./05-structs-and-enums) | Named-field, tuple, and unit structs; `impl` blocks with associated functions and `&self`/`&mut self`/`self` methods; enums with unit, tuple, and struct-like variants; pattern matching enum data; `impl` on enums |
 | 06 | [`06-traits-and-generics`](./06-traits-and-generics/traits) | Defining traits with required and default methods; `impl Trait for Type` for your own and foreign types; the orphan rule; associated functions, methods, and `Self` parameters; disambiguating same-named methods across traits with fully qualified `<Type as Trait>::method` syntax |
 | 07 | [`07-error-and-file-ops`](./07-error-and-file-ops) | Error handling with `panic!`, the `Result<T, E>` enum (`Ok`/`Err`), the `Option<T>` enum (`Some`/`None`), propagating errors with the `?` operator, and `unwrap` / `expect` / `unwrap_or` |
+| 08 | [`08-async-tokio`](./08-async-tokio) | The C10K problem and why async exists, `Future`s (lazy `poll()`/`Poll::{Ready,Pending}`), `async`/`.await` with `tokio::join!` and `?` error handling, the Tokio runtime (executor + reactor + work-stealing scheduler), `tokio::spawn` and `JoinHandle` vs `join!`, concurrency vs parallelism, common pitfalls (blocking the executor, forgetting `.await`, holding `std::sync::Mutex` across `.await`) |
 
 ### 00: Cargo and rustc
 
@@ -106,6 +107,21 @@ cargo --version
   with the `?` operator; and the quick-exit helpers `unwrap`, `expect`, and
   `unwrap_or`.
 
+### 08: Async with Tokio
+
+- `08-async-tokio/`: Cargo project introducing asynchronous Rust on top of
+  the Tokio runtime. Starts with the **C10K problem** and why
+  thread-per-request doesn't scale, then explains what a **`Future`** is
+  (lazy, driven by `poll()` returning `Poll::Ready` / `Poll::Pending`),
+  walks through `async` / `.await` syntax, **concurrent** execution with
+  `tokio::join!`, and error handling with `?`. Goes inside the **Tokio
+  runtime** (executor + reactor + work-stealing scheduler) and contrasts
+  `tokio::spawn` (independent task with a `JoinHandle`) with `join!`
+  (cooperative concurrency on a single task). Clarifies the **concurrency
+  vs. parallelism** distinction, and closes with the most common **async
+  pitfalls**: blocking the executor, forgetting `.await`, and holding a
+  `std::sync::Mutex` across `.await` (and the `tokio::sync::Mutex` fix).
+
 ## Running the code
 
 **Cargo projects** (e.g. `silicon`, `vars`). `cd` into the project directory:
@@ -145,5 +161,6 @@ rust-2026/
 ├── 05-structs-and-enums/           # cargo project
 ├── 06-traits-and-generics/
 │   └── traits/             # cargo project
-└── 07-error-and-file-ops/         # cargo project
+├── 07-error-and-file-ops/         # cargo project
+└── 08-async-tokio/                # cargo project
 ```
