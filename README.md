@@ -31,6 +31,7 @@ cargo --version
 | 06 | [`06-traits-and-generics`](./06-traits-and-generics/traits) | Defining traits with required and default methods; `impl Trait for Type` for your own and foreign types; the orphan rule; associated functions, methods, and `Self` parameters; disambiguating same-named methods across traits with fully qualified `<Type as Trait>::method` syntax |
 | 07 | [`07-error-and-file-ops`](./07-error-and-file-ops) | Error handling with `panic!`, the `Result<T, E>` enum (`Ok`/`Err`), the `Option<T>` enum (`Some`/`None`), propagating errors with the `?` operator, and `unwrap` / `expect` / `unwrap_or` |
 | 08 | [`08-async-tokio`](./08-async-tokio) | The C10K problem and why async exists, `Future`s (lazy `poll()`/`Poll::{Ready,Pending}`), `async`/`.await` with `tokio::join!` and `?` error handling, the Tokio runtime (executor + reactor + work-stealing scheduler), `tokio::spawn` and `JoinHandle` vs `join!`, concurrency vs parallelism, common pitfalls (blocking the executor, forgetting `.await`, holding `std::sync::Mutex` across `.await`) |
+| 09 | [`09-http-hyper-axum`](./09-http-hyper-axum) | Building a raw Hyper 1.x server (`Request<Incoming>` / `Response<Full<Bytes>>` / `TokioIo`), Hyper vs Axum side-by-side, the Axum `Router` with method chaining (`get().post()`), `Path` / `Query` / `Json` / `State` extractors, response shapes (`&str`, `(StatusCode, T)`, `Json<T>`, `Html<T>`, `Response::builder()`), sharing state with `Arc<RwLock<T>>`, nested routers with `.nest()`, and a custom `AppError` enum implementing `IntoResponse` with in-memory User CRUD (`POST` / `GET` / `PUT` / `PATCH` / `DELETE` / `?search=`) |
 
 ### 00: Cargo and rustc
 
@@ -122,6 +123,10 @@ cargo --version
   pitfalls**: blocking the executor, forgetting `.await`, and holding a
   `std::sync::Mutex` across `.await` (and the `tokio::sync::Mutex` fix).
 
+### 09: HTTP, Hyper, and Axum 0.8
+
+- `09-http-hyper-axum/`: Cargo project that goes from raw HTTP in Hyper 1.x to Axum 0.8.
+
 ## Running the code
 
 **Cargo projects** (e.g. `silicon`, `vars`). `cd` into the project directory:
@@ -162,5 +167,6 @@ rust-2026/
 ├── 06-traits-and-generics/
 │   └── traits/             # cargo project
 ├── 07-error-and-file-ops/         # cargo project
-└── 08-async-tokio/                # cargo project
+├── 08-async-tokio/                # cargo project
+├── 09-http-hyper-axum/            # cargo project
 ```

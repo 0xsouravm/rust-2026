@@ -11,7 +11,7 @@ http-body-util = "0.1"
 bytes = "1"
 
 # # Axum 0.8 — the ergonomic web framework on top of Hyper
-# axum = "0.8"
+axum = "0.8"
 
 # Async runtime
 tokio = { version = "1", features = ["full"] }
@@ -32,22 +32,22 @@ path = "src/serde.rs"
 name = "todo1_hyper_server"
 path = "src/todos/todo1_hyper_server.rs"
 
-# [[bin]]
-# name = "todo2_hyper_vs_axum"
-# path = "src/todos/todo2_hyper_vs_axum.rs"
+[[bin]]
+name = "hyper_vs_axum"
+path = "src/todos/hyper_vs_axum.rs"
 
-# [[bin]]
-# name = "todo3_axum_router"
-# path = "src/todos/todo3_axum_router.rs"
+[[bin]]
+name = "axum_router"
+path = "src/todos/axum_router.rs"
 
-# [[bin]]
-# name = "todo4_responses_and_state"
-# path = "src/todos/todo4_responses_and_state.rs"
+[[bin]]
+name = "responses_and_state"
+path = "src/todos/responses_and_state.rs"
 
-# [[bin]]
-# name = "todo5_nested_and_errors"
-# path = "src/todos/todo5_nested_and_errors.rs"
+[[bin]]
+name = "nested_and_errors"
+path = "src/todos/nested_and_errors.rs"
 
-# [[bin]]
-# name = "todo6_crud"
-# path = "src/todos/todo6_crud.rs"
+[[bin]]
+name = "crud"
+path = "src/crud.rs"
