@@ -1,0 +1,35 @@
+[package]
+name = "axum-error-handling"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["catch-panic"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "1.0"
+anyhow = "1.0"
+tracing = "0.1"
+
+[[bin]]
+name = "01_apperror_into_response"
+path = "src/01_apperror_into_response.rs"
+
+[[bin]]
+name = "02_thiserror_from"
+path = "src/02_thiserror_from.rs"
+
+[[bin]]
+name = "03_anyhow_context"
+path = "src/03_anyhow_context.rs"
+
+[[bin]]
+name = "04_nested_errors"
+path = "src/04_nested_errors.rs"
+
+[[bin]]
+name = "05_panic_safety"
+path = "src/05_panic_safety.rs"

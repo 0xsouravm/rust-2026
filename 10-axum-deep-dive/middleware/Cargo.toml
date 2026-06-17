@@ -1,0 +1,36 @@
+[package]
+name = "axum-middleware"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+axum = "0.8"
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["trace", "cors"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+jsonwebtoken = "9"
+uuid = { version = "1", features = ["v4"] }
+
+[[bin]]
+name = "01_timing_from_fn"
+path = "src/01_timing_from_fn.rs"
+
+[[bin]]
+name = "02_tracing_layer"
+path = "src/02_tracing_layer.rs"
+
+[[bin]]
+name = "03_request_id"
+path = "src/03_request_id.rs"
+
+[[bin]]
+name = "04_jwt_auth"
+path = "src/04_jwt_auth.rs"
+
+[[bin]]
+name = "05_cors_and_rate_limit"
+path = "src/05_cors_and_rate_limit.rs"
