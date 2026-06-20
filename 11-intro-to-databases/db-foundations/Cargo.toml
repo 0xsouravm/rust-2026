@@ -1,0 +1,49 @@
+[package]
+name = "db-foundations"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+sqlx = { version = "0.8", features = [
+    "runtime-tokio-rustls",
+    "postgres",
+    "uuid",
+    "chrono",
+    "migrate",
+    "macros",
+] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+dotenvy = "0.15"
+anyhow = "1"
+
+[lib]
+name = "db_foundations"
+path = "src/lib.rs"
+
+[[bin]]
+name = "01_why_databases"
+path = "src/01_why_databases.rs"
+
+[[bin]]
+name = "02_sql_fundamentals"
+path = "src/02_sql_fundamentals.rs"
+
+[[bin]]
+name = "03_pool_and_models"
+path = "src/03_pool_and_models.rs"
+
+[[bin]]
+name = "04_crud"
+path = "src/04_crud.rs"
+
+[[bin]]
+name = "05_transactions"
+path = "src/05_transactions.rs"
+
+[[bin]]
+name = "06_migrations"
+path = "src/06_migrations.rs"

@@ -32,6 +32,8 @@ cargo --version
 | 07 | [`07-error-and-file-ops`](./07-error-and-file-ops) | Error handling with `panic!`, the `Result<T, E>` enum (`Ok`/`Err`), the `Option<T>` enum (`Some`/`None`), propagating errors with the `?` operator, and `unwrap` / `expect` / `unwrap_or` |
 | 08 | [`08-async-tokio`](./08-async-tokio) | The C10K problem and why async exists, `Future`s (lazy `poll()`/`Poll::{Ready,Pending}`), `async`/`.await` with `tokio::join!` and `?` error handling, the Tokio runtime (executor + reactor + work-stealing scheduler), `tokio::spawn` and `JoinHandle` vs `join!`, concurrency vs parallelism, common pitfalls (blocking the executor, forgetting `.await`, holding `std::sync::Mutex` across `.await`) |
 | 09 | [`09-http-hyper-axum`](./09-http-hyper-axum) | Building a raw Hyper 1.x server (`Request<Incoming>` / `Response<Full<Bytes>>` / `TokioIo`), Hyper vs Axum side-by-side, the Axum `Router` with method chaining (`get().post()`), `Path` / `Query` / `Json` / `State` extractors, response shapes (`&str`, `(StatusCode, T)`, `Json<T>`, `Html<T>`, `Response::builder()`), sharing state with `Arc<RwLock<T>>`, nested routers with `.nest()`, and a custom `AppError` enum implementing `IntoResponse` with in-memory User CRUD (`POST` / `GET` / `PUT` / `PATCH` / `DELETE` / `?search=`) |
+| 10 | [`10-axum-deep-dive`](./10-axum-deep-dive) | Four Axum 0.8 projects: `routers` (method chaining + auto 404/405/OPTIONS, `{id}` path params with typed `Path<T>`/`Query<T>`/`Json<T>`, `.nest()`/`.merge()`, `Arc<RwLock<T>>` state via `State<T>`, `IntoResponse`), `error-handling`, `middleware` (`from_fn` `(Request, Next) -> Response`, `TraceLayer`, request-id extensions, JWT auth with `jsonwebtoken`, `CorsLayer` + token-bucket rate limit via `from_fn_with_state`), and `crud-starter` — a multi-file CRUD assignment wiring it all together with selective middleware on nested routers, CORS outermost, and a `chain_order` demo of IN/OUT execution order |
+| 11 | [`11-intro-to-databases`](./11-intro-to-databases) | Four PostgreSQL projects: `db-foundations` (sqlx 0.8 compile-time-verified `query!`/`query_as!` macros — connection pooling with `PgPoolOptions`, `FromRow` models, UUID/`TIMESTAMPTZ`/`CHECK`/FK `ON DELETE CASCADE`, ACID transactions with Rust Drop-driven ROLLBACK, and `sqlx::migrate!()`)
 
 ### 00: Cargo and rustc
 
@@ -127,6 +129,60 @@ cargo --version
 
 - `09-http-hyper-axum/`: Cargo project that goes from raw HTTP in Hyper 1.x to Axum 0.8.
 
+### 10: Axum deep dive — routers, middleware, and error handling
+
+- `10-axum-deep-dive/`: Four Cargo projects that take Axum 0.8 apart one
+  concern at a time. **`routers/`** is five standalone binaries covering
+  method chaining (`.get().post().delete()`) and Axum's free
+  auto-responses (OPTIONS → 200 + `Allow`, unknown method → 405,
+  unknown path → 404), `{id}` path params with typed `Path<T>` (auto-422
+  on bad input) and tuple extraction, `Query<T>` with optional fields,
+  `Json<T>` body extraction, organising routes by domain with `.nest()`
+  (adds a prefix) vs `.merge()` (same level), `Arc<RwLock<T>>` state via
+  `.with_state()` and the `State<T>` extractor, and the `IntoResponse`
+  trait (`&str`, `(StatusCode, T)`, `Json`, `Html`, custom headers,
+  `Result<T, E>`). **`error-handling/`** is five binaries: a hand-rolled
+  `AppError` enum whose single `IntoResponse` impl owns the
+  status-to-JSON mapping so `?` just works, `thiserror`
+  (`#[derive(Error)]`, `#[error("...")]`, `#[from]` for auto `From`,
+  `#[error(transparent)]`), `anyhow` (`.with_context()`, `bail!()`, the
+  cause chain via `{:#}`), a three-layer error model
+  (`RepositoryError` → `ServiceError` → `AppError` with `From` impls as
+  the layer boundaries), and panic safety via `panic::set_hook` +
+  `CatchPanicLayer`. **`middleware/`** is five binaries: `from_fn`
+  middleware as an `async fn(Request, Next) -> Response` with the
+  `next.run(req).await` pass-through, `TraceLayer` +
+  `tracing-subscriber`/`RUST_LOG`, a UUID request-id middleware writing
+  to and reading from request extensions, JWT auth with `jsonwebtoken`
+  (Bearer token → `Claims` in extensions, public vs protected routers),
+  and `CorsLayer` plus a per-IP token-bucket rate limiter using
+  `from_fn_with_state` — with the key rule that the **last** `.layer()`
+  is the **outermost**. **`crud-starter/`** is a multi-file CRUD
+  assignment (`main`/`router`/`error`/`models`/`state`, `routes/`, a
+  `middleware/` tree including a raw `tower::Service`/`tower::Layer`
+  impl, and a `chain_order` binary logging the IN/OUT execution order)
+  that stitches the three together and demonstrates **selective**
+  middleware on nested routers (auth + timing on `/users`, nothing on
+  `/health`), CORS placed outermost so preflight short-circuits, and a
+  stateful rate limiter keyed by client IP.
+
+### 11: Intro to databases — sqlx, SeaORM, and PostgreSQL
+
+- `11-intro-to-databases/`: **`db-foundations/`** is six standalone binaries built on
+  sqlx 0.8's compile-time-verified `query!`/`query_as!` macros: it opens
+  with a flat-file lost-update race (motivating ACID), then walks through
+  raw SQL fundamentals, connection pooling with `PgPoolOptions`
+  (`max_connections`/`min_connections`/`acquire_timeout`), `FromRow`
+  structs over UUID PKs / `TIMESTAMPTZ` / `CHECK` / FK `ON DELETE
+  CASCADE`, full CRUD with `RETURNING`, atomic transfers in a
+  transaction where early-return drops the `Transaction` and triggers
+  ROLLBACK via `Drop` (no explicit rollback needed), and schema
+  evolution with `sqlx::migrate!()` + an embedded migrations folder.
+  
+  **Note:** the sqlx projects use `query!`/`query_as!` macros
+  that are verified at *compile* time, so they need a live Postgres and
+  `DATABASE_URL` to build (Docker one-liner in each README); 
+
 ## Running the code
 
 **Cargo projects** (e.g. `silicon`, `vars`). `cd` into the project directory:
@@ -151,6 +207,22 @@ cd 06-traits-and-generics/traits
 cargo run
 ```
 
+**Module 11 needs a database.** The `db-foundations` and `sqlx-lab`
+projects use sqlx's compile-time `query!`/`query_as!` macros, which
+verify SQL against a *live* Postgres at build time — so `cargo build`
+fails with `error: set DATABASE_URL` until a database is reachable.
+Quick start (full details in
+each project's README):
+
+```sh
+# Postgres via Docker
+docker run --name pgdev -e POSTGRES_PASSWORD=secret -p 5432:5432 -d postgres:16
+export DATABASE_URL=postgresql://postgres:secret@localhost:5432/<db_name>
+
+cd 11-intro-to-databases/db-foundations
+cargo run --bin 02_sql_fundamentals    # sqlx: needs DATABASE_URL at build time
+```
+
 ## Layout
 
 ```
@@ -169,4 +241,11 @@ rust-2026/
 ├── 07-error-and-file-ops/         # cargo project
 ├── 08-async-tokio/                # cargo project
 ├── 09-http-hyper-axum/            # cargo project
+├── 10-axum-deep-dive/
+│   ├── routers/            # cargo project — routing examples
+│   ├── error-handling/     # cargo project — error-handling examples
+│   ├── middleware/         # cargo project — middleware examples
+│   └── crud-starter/       # cargo project — multi-file CRUD assignment
+└── 11-intro-to-databases/
+    ├── db-foundations/     # cargo project — sqlx query!/query_as! examples
 ```
