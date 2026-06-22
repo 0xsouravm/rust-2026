@@ -33,7 +33,7 @@ cargo --version
 | 08 | [`08-async-tokio`](./08-async-tokio) | The C10K problem and why async exists, `Future`s (lazy `poll()`/`Poll::{Ready,Pending}`), `async`/`.await` with `tokio::join!` and `?` error handling, the Tokio runtime (executor + reactor + work-stealing scheduler), `tokio::spawn` and `JoinHandle` vs `join!`, concurrency vs parallelism, common pitfalls (blocking the executor, forgetting `.await`, holding `std::sync::Mutex` across `.await`) |
 | 09 | [`09-http-hyper-axum`](./09-http-hyper-axum) | Building a raw Hyper 1.x server (`Request<Incoming>` / `Response<Full<Bytes>>` / `TokioIo`), Hyper vs Axum side-by-side, the Axum `Router` with method chaining (`get().post()`), `Path` / `Query` / `Json` / `State` extractors, response shapes (`&str`, `(StatusCode, T)`, `Json<T>`, `Html<T>`, `Response::builder()`), sharing state with `Arc<RwLock<T>>`, nested routers with `.nest()`, and a custom `AppError` enum implementing `IntoResponse` with in-memory User CRUD (`POST` / `GET` / `PUT` / `PATCH` / `DELETE` / `?search=`) |
 | 10 | [`10-axum-deep-dive`](./10-axum-deep-dive) | Four Axum 0.8 projects: `routers` (method chaining + auto 404/405/OPTIONS, `{id}` path params with typed `Path<T>`/`Query<T>`/`Json<T>`, `.nest()`/`.merge()`, `Arc<RwLock<T>>` state via `State<T>`, `IntoResponse`), `error-handling`, `middleware` (`from_fn` `(Request, Next) -> Response`, `TraceLayer`, request-id extensions, JWT auth with `jsonwebtoken`, `CorsLayer` + token-bucket rate limit via `from_fn_with_state`), and `crud-starter` — a multi-file CRUD assignment wiring it all together with selective middleware on nested routers, CORS outermost, and a `chain_order` demo of IN/OUT execution order |
-| 11 | [`11-intro-to-databases`](./11-intro-to-databases) | Four PostgreSQL projects: `db-foundations` (sqlx 0.8 compile-time-verified `query!`/`query_as!` macros — connection pooling with `PgPoolOptions`, `FromRow` models, UUID/`TIMESTAMPTZ`/`CHECK`/FK `ON DELETE CASCADE`, ACID transactions with Rust Drop-driven ROLLBACK, and `sqlx::migrate!()`)
+| 11 | [`11-intro-to-databases`](./11-intro-to-databases) | Four PostgreSQL projects: `db-foundations` (sqlx 0.8 compile-time-verified `query!`/`query_as!` macros — connection pooling with `PgPoolOptions`, `FromRow` models, UUID/`TIMESTAMPTZ`/`CHECK`/FK `ON DELETE CASCADE`, ACID transactions with Rust Drop-driven ROLLBACK, and `sqlx::migrate!()`), `sqlx-lab` (Axum 0.8 + sqlx Users API with `COALESCE` partial updates and `thiserror` `AppError`→HTTP mapping), `seaorm-basics` (SeaORM 1.1 — `DeriveEntityModel`, the Model/ActiveModel/Entity trinity, `has_many`/`belongs_to` + `find_with_related`, `Condition::any/all`, `PaginatorTrait`, raw SQL, and `MockDatabase` tests with no DB needed), and `seaorm-lab` (Axum 0.8 + SeaORM Users/Posts API with in-crate `Migrator` self-migrating on startup) |
 
 ### 00: Cargo and rustc
 
@@ -178,10 +178,27 @@ cargo --version
   transaction where early-return drops the `Transaction` and triggers
   ROLLBACK via `Drop` (no explicit rollback needed), and schema
   evolution with `sqlx::migrate!()` + an embedded migrations folder.
-  
+  **`sqlx-lab/`** is the sqlx lab — an Axum 0.8 Users API over sqlx with
+  `COALESCE`-based partial `UPDATE`s and a single `thiserror` `AppError`
+  whose `IntoResponse` maps unique-violation→409 and `RowNotFound`→404.
+  **`seaorm-basics/`** is seven binaries on SeaORM 1.1 — `connect`/
+  `setup`/`reset` helpers, `DeriveEntityModel` and the Model /
+  ActiveModel / Entity trinity, `has_many`/`belongs_to` relations with
+  `find_with_related` / `find_also_related`, filtering with
+  `Condition::any`/`all`, `PaginatorTrait` pagination, joins via
+  `QuerySelect`, `ColumnTrait` + `sea_query::ExprTrait` custom queries,
+  and `MockDatabase`-based unit tests that run with **no database
+  running**. **`seaorm-lab/`** is the SeaORM lab — an Axum 0.8 + SeaORM
+  Users/Posts API whose binary is **self-migrating** (`Migrator::up` on
+  startup, raw DDL in `up()`/`down()`, tracked in `seaql_migrations`),
+  with `find_related`, paginated responses, and an `AppError` → HTTP
+  mapping. 
+
+
   **Note:** the sqlx projects use `query!`/`query_as!` macros
   that are verified at *compile* time, so they need a live Postgres and
-  `DATABASE_URL` to build (Docker one-liner in each README); 
+  `DATABASE_URL` to build (Docker one-liner in each README); the SeaORM
+  projects compile with no database at all.
 
 ## Running the code
 
@@ -211,8 +228,7 @@ cargo run
 projects use sqlx's compile-time `query!`/`query_as!` macros, which
 verify SQL against a *live* Postgres at build time — so `cargo build`
 fails with `error: set DATABASE_URL` until a database is reachable.
-Quick start (full details in
-each project's README):
+Quick start (full details in each project's README):
 
 ```sh
 # Postgres via Docker
@@ -248,4 +264,7 @@ rust-2026/
 │   └── crud-starter/       # cargo project — multi-file CRUD assignment
 └── 11-intro-to-databases/
     ├── db-foundations/     # cargo project — sqlx query!/query_as! examples
+    ├── sqlx-lab/           # cargo project — Axum + sqlx Users API lab
+    ├── seaorm-basics/      # cargo project — SeaORM entity/relation/query examples
+    └── seaorm-lab/         # cargo project — Axum + SeaORM Users/Posts API lab
 ```
