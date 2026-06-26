@@ -9,7 +9,7 @@ use axum::{
 
 use crate::{
     error::AppError,
-    models::{ListQuery, NewUser, UpdateUser, User},
+    models::{ListQuery, NewUser, UpdateUser, User, FullUpdateUser},
     state::AppState,
 };
 
@@ -74,6 +74,29 @@ async fn patch_user(
         .ok_or_else(|| AppError::NotFound(format!("user {id} not found")))?;
     if let Some(name)  = &payload.name  { user.name  = require_nonempty("name",  name)?;  }
     if let Some(email) = &payload.email { user.email = require_nonempty("email", email)?; }
+    Ok(Json(user.clone()))
+}
+
+// PUT /users/{id} - replaces an existing user(full update)
+pub async fn put_user(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<FullUpdateUser>,
+) -> Result<Json<User>, AppError> {
+    // ensure the new values provided are not blank
+    let new_name = require_nonempty("name", &payload.name)?;
+    let new_email = require_nonempty("email", &payload.email)?;
+
+    let mut db = state.db.write().unwrap();
+
+    // look up the user by ID. If missing, throw an error
+    let user = db.get_mut(&id).ok_or_else(|| AppError::NotFound(format!("user {id} not found")))?;
+
+    // overwrite old data with new values
+    user.name = new_name;
+    user.email = new_email;
+
+    // return copy of the updated record
     Ok(Json(user.clone()))
 }
 
