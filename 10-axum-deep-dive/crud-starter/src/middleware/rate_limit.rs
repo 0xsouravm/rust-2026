@@ -13,24 +13,25 @@
 
 use std::{
     collections::HashMap,
-    net::SocketAddr,
     sync::{Arc, Mutex},
     time::Instant,
 };
 
 use axum::{
-    extract::{ConnectInfo, Request, State},
+    extract::{Request, State},
     http::StatusCode,
     middleware::Next,
     response::Response,
 };
+// import claims to see who the logged-in user is
+use crate::middleware::auth::Claims;
 
 #[derive(Debug)]
 pub struct TokenBucket {
-    pub tokens:      f64,
-    pub capacity:    f64,
-    pub refill_rate: f64,   // tokens per second
-    pub last_refill: Instant,
+    pub tokens:      f64,   // current number of tokens in the bucket
+    pub capacity:    f64,   // max tokens the bucket can hold(burst limit)
+    pub refill_rate: f64,   // no. of tokens added back per second
+    pub last_refill: Instant,   // exact time we last checked/refilled the bucket
 }
 
 impl TokenBucket {
@@ -52,7 +53,7 @@ impl TokenBucket {
 }
 
 #[derive(Clone)]
-pub struct RateLimiterState(pub Arc<Mutex<HashMap<SocketAddr, TokenBucket>>>);
+pub struct RateLimiterState(pub Arc<Mutex<HashMap<String, TokenBucket>>>);
 
 impl RateLimiterState {
     pub fn new() -> Self {
@@ -62,7 +63,6 @@ impl RateLimiterState {
 
 pub async fn rate_limit_middleware(
     State(state): State<RateLimiterState>,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
@@ -71,12 +71,20 @@ pub async fn rate_limit_middleware(
         return Ok(next.run(req).await);
     }
 
-    // Lock-and-release BEFORE the .await. Holding a std::sync::Mutex
-    // across an await is a deadlock waiting to happen.
+    // look inside the request "extensions" to find the JWT claims
+    // JWT authentication middleware must run before this for this to work
+    let claims = req.
+        .extensions()
+        .get::<Claims>()
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let user_id = claims.sub.clone();
+
+    // find this user's bucket. If they don't have it, then create it.
     let allowed = {
         let mut map = state.0.lock().unwrap();
         let bucket = map
-            .entry(addr)
+            .entry(user_id)
             .or_insert_with(|| TokenBucket::new(5.0, 0.5));
         bucket.try_consume()
     };
