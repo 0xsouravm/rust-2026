@@ -114,7 +114,7 @@ async fn delete_user(
 /// GET/PATCH/DELETE /users/{id} — returned as a MethodRouter so the
 /// parent can stack timing + auth on JUST this branch.
 pub fn read_user_route() -> MethodRouter<AppState> {
-    get(get_user).patch(patch_user).delete(delete_user)
+    get(get_user).patch(patch_user).delete(delete_user).put(put_user)
 }
 
 /// GET /users — list, used by the v1 merge.
