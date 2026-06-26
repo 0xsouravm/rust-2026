@@ -13,6 +13,7 @@ tower-http = { version = "0.7", features = ["trace", "cors", "request-id", "util
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
+jsonwebtoken = "9"
 
 [[bin]]
 name = "crud-starter"

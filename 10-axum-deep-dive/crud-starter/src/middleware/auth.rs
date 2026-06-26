@@ -12,23 +12,60 @@
 
 use axum::{
     extract::Request,
-    http::StatusCode,
+    http::{header, StatusCode},
     middleware::Next,
     response::Response,
 };
+use jsonwebtoken::{
+    decode,
+    DecodingKey,
+    Validation
+};
+use serde::{Deserialize, Serialize};
 
-const API_KEY: &str = "letmein";
+// authentication using JWT middleware
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub sub: String,    // subject
+    pub exp: usize,     // expiry (unix timestamp seconds)
+    pub role: String,   // custom validation claim
+}
 
-pub async fn api_key_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
-    let key = req
+async fn jwt_middleware(mut req: Request, next: Next) -> Result<Response, StatusCode> {
+    // extract the string value after "Bearer " from the Authorization header
+    let token = req
         .headers()
-        .get("X-API-Key")
+        .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "))
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    if key != API_KEY {
-        return Err(StatusCode::UNAUTHORIZED);
-    }
+    // fetch the signature verification secret
+    let secret = std::env::var("JWT_SECRET").map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let key = DecodingKey::from_secret(secret.as_bytes());
+    let validation = Validation::default();
 
+    // decode signature and match validity window rules
+    let data = decode::<Claims>(token, &key, &validation)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    // inject the parsed claims into Axum's request context extensions
+    req.extensions_mut().insert(data.claims);
     Ok(next.run(req).await)
 }
+
+// const API_KEY: &str = "letmein";
+
+// pub async fn api_key_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
+//     let key = req
+//         .headers()
+//         .get("X-API-Key")
+//         .and_then(|v| v.to_str().ok())
+//         .ok_or(StatusCode::UNAUTHORIZED)?;
+
+//     if key != API_KEY {
+//         return Err(StatusCode::UNAUTHORIZED);
+//     }
+
+//     Ok(next.run(req).await)
+// }
