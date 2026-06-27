@@ -26,27 +26,45 @@
 //             GET    (no layers)
 
 use axum::{
-    http::{header, Method},
+    http::{header, Method, StatusCode},
     middleware,
-    routing::post,
+    routing::{get, post},
     Router,
+    Json,
 };
 use tower_http::{
     cors::CorsLayer,
-    request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer},
     trace::TraceLayer,
 };
 
 use crate::{
     middleware::{
-        auth::api_key_middleware,
+        auth::{jwt_middleware, Claims},
         rate_limit::{rate_limit_middleware, RateLimiterState},
-        request_id::request_id_middleware,
-        timing::timing_middleware,
+        tower_service::TimingLayer,
     },
     routes,
     state::AppState,
 };
+
+async fn login_handler(Json(body): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, StatusCode> {
+    let username = body.get("username").and_then(|v| v.as_str()).unwrap_or("anonymous");
+    let secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| "secure-local-dev-key".to_string());
+
+    // calculate token expiration (current unix time + 3600 secs/1 hr)
+    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs();
+    let claims = Claims { sub: username.to_string(), exp: (now + 3600) as usize, role: "user".to_string() };
+    
+    // cryptographically sign the token using the secret key
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(secret.as_bytes()),
+    ).map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // send the token back to the user
+    Ok(Json(serde_json::json!({ "token": token })))
+}
 
 pub fn build_app() -> Router {
     // ── /users sub-router ──────────────────────────────────────────────
@@ -58,28 +76,32 @@ pub fn build_app() -> Router {
         .route(
             "/{id}",
             routes::users::read_user_route()
-                .layer(middleware::from_fn(timing_middleware))
-                .layer(middleware::from_fn(api_key_middleware)),
+                .layer(TimingLayer)
+                .layer(middleware::from_fn(jwt_middleware)),
         )
         .route(
             "/",
             post(routes::users::create_user)
-                .layer(middleware::from_fn(timing_middleware))
-                .layer(middleware::from_fn(api_key_middleware))
+                .layer(TimingLayer)
                 .layer(
                     middleware::from_fn_with_state(rate_state, rate_limit_middleware),
-                ),
+                )
+                .layer(middleware::from_fn(jwt_middleware))
         )
         .route("/", routes::users::list_route());
 
     // ── /health sub-router ─────────────────────────────────────────────
     // No layers — public.
     let health: Router<AppState> = Router::new()
-        .route("/health", axum::routing::get(routes::health::health));
+        .route("/health", get(routes::health::health));
+
+    let public_auth: Router<AppState> = Router::new()
+        .route("/login", post(login_handler));  // public endpoint to get a token
 
     // ── v1 composition ─────────────────────────────────────────────────
     let v1: Router<AppState> = Router::new()
         .merge(health)
+        .merge(public_auth)
         .nest("/users", users);
 
     // Drop the state type so we can layer freely above.
@@ -87,15 +109,13 @@ pub fn build_app() -> Router {
 
     // ── Outer layers (last added = outermost) ──────────────────────────
     // request → TraceLayer → CORS → request_id → v1 → handler
-    let x_request_id = "x-request-id";
+    // let x_request_id = "x-request-id";
 
     Router::new()
         .nest("/api/v1", v1)
-        .layer(PropagateRequestIdLayer::new(x_request_id.parse().unwrap()))
-        .layer(SetRequestIdLayer::new(x_request_id.parse().unwrap(), MakeRequestUuid))
-        .layer(middleware::from_fn(request_id_middleware))
         .layer(cors_layer())
         .layer(TraceLayer::new_for_http())
+        .layer(TimingLayer)
 }
 
 // ── CORS ──────────────────────────────────────────────────────────────

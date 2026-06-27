@@ -73,7 +73,7 @@ pub async fn rate_limit_middleware(
 
     // look inside the request "extensions" to find the JWT claims
     // JWT authentication middleware must run before this for this to work
-    let claims = req.
+    let claims = req
         .extensions()
         .get::<Claims>()
         .ok_or(StatusCode::UNAUTHORIZED)?;
