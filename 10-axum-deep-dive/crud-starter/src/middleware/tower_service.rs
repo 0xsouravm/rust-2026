@@ -41,15 +41,15 @@ impl<S> Service<Request> for TimingService<S>
 where
     S: Service<Request, Response = Response> + Clone + Send + 'static,
     S::Future: Send + 'static,
-    S::Error: Into<Box<dyn std::error::Error + Send + Sync>> + Send,
+    S::Error: Send + 'static,
 {
     type Response = Response;
-    type Error = Box<dyn std::error::Error + Send + Sync>;
+    type Error = S::Error;
     type Future = Pin<Box<dyn Future<Output = Result<Response, Self::Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // Just forward to the inner service.
-        self.inner.poll_ready(cx).map_err(Into::into)
+        self.inner.poll_ready(cx)
     }
 
     fn call(&mut self, req: Request) -> Self::Future {
@@ -61,9 +61,10 @@ where
         Box::pin(async move {
             let start = Instant::now();
             let path  = req.uri().path().to_string();
-            let resp  = inner.call(req).await.map_err(Into::into)?;
+            let resp  = inner.call(req).await?;
             let ms    = start.elapsed().as_millis();
-            tracing::info!(path = %path, ms = %ms, "[tower-service] timing");
+            let micros = start.elapsed().as_micros();
+            tracing::info!(path = %path, ms = %ms, micros = %micros, "[tower-service] timing");
             Ok(resp)
         })
     }

@@ -9,7 +9,7 @@ use axum::{
 
 use crate::{
     error::AppError,
-    models::{ListQuery, NewUser, UpdateUser, User},
+    models::{ListQuery, NewUser, UpdateUser, User, FullUpdateUser},
     state::AppState,
 };
 
@@ -77,6 +77,29 @@ async fn patch_user(
     Ok(Json(user.clone()))
 }
 
+// PUT /users/{id} - replaces an existing user(full update)
+pub async fn put_user(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<FullUpdateUser>,
+) -> Result<Json<User>, AppError> {
+    // ensure the new values provided are not blank
+    let new_name = require_nonempty("name", &payload.name)?;
+    let new_email = require_nonempty("email", &payload.email)?;
+
+    let mut db = state.db.write().unwrap();
+
+    // look up the user by ID. If missing, throw an error
+    let user = db.get_mut(&id).ok_or_else(|| AppError::NotFound(format!("user {id} not found")))?;
+
+    // overwrite old data with new values
+    user.name = new_name;
+    user.email = new_email;
+
+    // return copy of the updated record
+    Ok(Json(user.clone()))
+}
+
 // DELETE /users/{id}
 async fn delete_user(
     State(state): State<AppState>,
@@ -91,7 +114,7 @@ async fn delete_user(
 /// GET/PATCH/DELETE /users/{id} — returned as a MethodRouter so the
 /// parent can stack timing + auth on JUST this branch.
 pub fn read_user_route() -> MethodRouter<AppState> {
-    get(get_user).patch(patch_user).delete(delete_user)
+    get(get_user).patch(patch_user).delete(delete_user).put(put_user)
 }
 
 /// GET /users — list, used by the v1 merge.

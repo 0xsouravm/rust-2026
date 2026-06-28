@@ -26,3 +26,10 @@ pub struct ListQuery {
     pub search: Option<String>,
     pub limit:  Option<usize>,
 }
+
+// full update a user
+#[derive(Deserialize)]
+pub struct FullUpdateUser {
+    pub name: String,
+    pub email: String,
+}
