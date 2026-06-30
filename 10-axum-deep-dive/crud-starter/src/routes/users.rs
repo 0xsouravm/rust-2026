@@ -62,6 +62,27 @@ pub async fn create_user(
     Ok((StatusCode::CREATED, Json(user)))
 }
 
+// PUT /users/{id} — full update
+async fn put_user(
+    State(state): State<AppState>,
+    Path(id): Path<u64>,
+    Json(payload): Json<NewUser>,
+) -> Result<Json<User>, AppError> {
+    let name = require_nonempty("name", &payload.name)?;
+    let email = require_nonempty("email", &payload.email)?;
+
+    let mut db = state.db.write().unwrap();
+
+    let user = db
+        .get_mut(&id)
+        .ok_or_else(|| AppError::NotFound(format!("user {id} not found")))?;
+
+    user.name = name;
+    user.email = email;
+
+    Ok(Json(user.clone()))
+}
+
 // PATCH /users/{id} — partial update
 async fn patch_user(
     State(state): State<AppState>,
@@ -91,7 +112,10 @@ async fn delete_user(
 /// GET/PATCH/DELETE /users/{id} — returned as a MethodRouter so the
 /// parent can stack timing + auth on JUST this branch.
 pub fn read_user_route() -> MethodRouter<AppState> {
-    get(get_user).patch(patch_user).delete(delete_user)
+    get(get_user)
+        .put(put_user)
+        .patch(patch_user)
+        .delete(delete_user)
 }
 
 /// GET /users — list, used by the v1 merge.
