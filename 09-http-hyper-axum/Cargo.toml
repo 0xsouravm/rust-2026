@@ -1,0 +1,53 @@
+[package]
+name = "http-hyper-axum"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Hyper 1.x — the raw HTTP engine
+hyper = { version = "1", features = ["full"] }
+hyper-util = { version = "0.1", features = ["full"] }
+http-body-util = "0.1"
+bytes = "1"
+
+# # Axum 0.8 — the ergonomic web framework on top of Hyper
+axum = "0.8"
+
+# Async runtime
+tokio = { version = "1", features = ["full"] }
+
+# Serde for JSON
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "serde"
+path = "src/serde.rs"
+
+[[bin]]
+name = "todo1_hyper_server"
+path = "src/todos/todo1_hyper_server.rs"
+
+[[bin]]
+name = "hyper_vs_axum"
+path = "src/todos/hyper_vs_axum.rs"
+
+[[bin]]
+name = "axum_router"
+path = "src/todos/axum_router.rs"
+
+[[bin]]
+name = "responses_and_state"
+path = "src/todos/responses_and_state.rs"
+
+[[bin]]
+name = "nested_and_errors"
+path = "src/todos/nested_and_errors.rs"
+
+[[bin]]
+name = "crud"
+path = "src/crud.rs"
