@@ -1,34 +1,34 @@
-// src/middleware/auth.rs — a toy API-key middleware.
-//
-// Not JWT, not OAuth — just an `X-API-Key` header check. The point of
-// this file is the **selective application** pattern: the layer is
-// added ONLY to the protected sub-router, not the public health
-// endpoint. See `src/router.rs` to see how it's wired.
-//
-// The middleware can either:
-//
-//   1. Pass through:    `Ok(next.run(req).await)`
-//   2. Short-circuit:   `Err(StatusCode::UNAUTHORIZED)`
+use axum::{extract::Request, http::StatusCode, middleware::Next, response::Response};
+use jsonwebtoken::{decode, DecodingKey, Validation};
+use serde::{Deserialize, Serialize};
 
-use axum::{
-    extract::Request,
-    http::StatusCode,
-    middleware::Next,
-    response::Response,
-};
+const JWT_SECRET: &[u8] = b"super-secret-key-change-in-production";
 
-const API_KEY: &str = "letmein";
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Claims {
+    pub sub: String,
+    pub exp: i64,
+}
 
-pub async fn api_key_middleware(req: Request, next: Next) -> Result<Response, StatusCode> {
-    let key = req
+pub async fn api_key_middleware(mut req: Request, next: Next) -> Result<Response, StatusCode> {
+    let auth_header = req
         .headers()
-        .get("X-API-Key")
+        .get("Authorization")
         .and_then(|v| v.to_str().ok())
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    if key != API_KEY {
+    if !auth_header.starts_with("Bearer ") {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
+    let token = &auth_header[7..];
+    let token_data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(JWT_SECRET),
+        &Validation::default(),
+    )
+    .map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    req.extensions_mut().insert(token_data.claims);
     Ok(next.run(req).await)
 }
